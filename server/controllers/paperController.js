@@ -1,0 +1,356 @@
+const pool = require('../config/db')
+
+const getMyGroups = async (req, res) => {
+  try {
+    const userId = req.user.user_id
+
+    const [rows] = await pool.query(
+      `SELECT DISTINCT rg.group_id, rg.group_name, rg.program, rg.school_year
+       FROM research_groups rg
+       LEFT JOIN group_members gm ON gm.group_id = rg.group_id
+       WHERE gm.user_id = ? OR rg.created_by = ?
+       ORDER BY rg.group_name ASC`,
+      [userId, userId]
+    )
+
+    res.json({ data: rows })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ message: 'Failed to load your groups' })
+  }
+}
+
+const uploadPaper = async (req, res) => {
+  const { title, authors, program, year, school_year, abstract, keywords, group_id } = req.body
+  const userId = req.user.user_id
+  const effectiveSchoolYear = school_year || (year ? `${year}-${Number(year) + 1}` : '')
+
+  if (!title || !authors || !program || !effectiveSchoolYear || !group_id) {
+    return res.status(400).json({ message: 'All required fields are missing' })
+  }
+  if (!req.file) {
+    return res.status(400).json({ message: 'File is required' })
+  }
+
+  const connection = await pool.getConnection()
+  try {
+    await connection.beginTransaction()
+
+    const [groupRows] = await connection.query(
+      `SELECT DISTINCT rg.group_id, rg.group_name
+       FROM research_groups rg
+       LEFT JOIN group_members gm ON gm.group_id = rg.group_id
+       WHERE rg.group_id = ? AND (gm.user_id = ? OR rg.created_by = ?)`,
+      [group_id, userId, userId]
+    )
+
+    if (groupRows.length === 0) {
+      await connection.rollback()
+      return res.status(403).json({ message: 'You are not a member of the selected group' })
+    }
+
+    const groupId = groupRows[0].group_id
+
+    const [existingSubmissionRows] = await connection.query(
+      `SELECT submission_id
+       FROM submissions
+       WHERE group_id = ? AND title = ?
+       ORDER BY submission_id DESC
+       LIMIT 1`,
+      [groupId, title]
+    )
+
+    let submissionId
+    let createdNewSubmission = false
+    if (existingSubmissionRows.length > 0) {
+      submissionId = existingSubmissionRows[0].submission_id
+    } else {
+      const [submissionResult] = await connection.query(
+        `INSERT INTO submissions
+          (group_id, title, abstract, keywords, authors, program, school_year, submitted_by)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+         RETURNING submission_id`,
+        [
+          groupId,
+          title,
+          abstract || null,
+          keywords || null,
+          authors,
+          program,
+          effectiveSchoolYear,
+          userId
+        ]
+      )
+      submissionId = submissionResult.insertId
+      createdNewSubmission = true
+    }
+
+    const [versionRows] = await connection.query(
+      'SELECT COALESCE(MAX(version_number), 0) AS latestVersion FROM document_versions WHERE submission_id = ?',
+      [submissionId]
+    )
+    const nextVersion = Number(versionRows[0].latestVersion) + 1
+
+    await connection.query(
+      `INSERT INTO document_versions (submission_id, file_path, file_name, file_size, file_type, version_number, uploaded_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [submissionId, req.file.path, req.file.originalname, req.file.size || null, req.file.mimetype || null, nextVersion, userId]
+    )
+
+    await connection.commit()
+
+    try {
+      if (req && req.audit && typeof req.audit.log === 'function') {
+        await req.audit.log({
+          action: 'UPLOAD_VERSION',
+          target_type: 'submission',
+          target_id: submissionId,
+          changes: { version: nextVersion, file_name: req.file.originalname }
+        })
+
+        if (createdNewSubmission) {
+          await req.audit.log({
+            action: 'CREATE_SUBMISSION',
+            target_type: 'submission',
+            target_id: submissionId,
+            changes: { title, authors, program, school_year: effectiveSchoolYear }
+          })
+        }
+      }
+    } catch (e) {
+      console.error('Audit logging failed', e)
+    }
+
+    res.status(201).json({
+      message: 'Version uploaded successfully',
+      version: nextVersion,
+      paperId: submissionId
+    })
+
+  } catch (err) {
+    await connection.rollback()
+    console.error(err)
+    res.status(500).json({ message: 'Server error during upload' })
+  } finally {
+    connection.release()
+  }
+}
+
+const uploadPaperVersion = async (req, res) => {
+  const { paperId } = req.params
+  const userId = req.user.user_id
+
+  if (!req.file) {
+    return res.status(400).json({ message: 'File is required' })
+  }
+
+  const connection = await pool.getConnection()
+  try {
+    await connection.beginTransaction()
+
+    const [submissionRows] = await connection.query(
+      `SELECT submission_id, title, submitted_by
+       FROM submissions
+       WHERE submission_id = ? AND submitted_by = ?`,
+      [paperId, userId]
+    )
+
+    if (submissionRows.length === 0) {
+      await connection.rollback()
+      return res.status(404).json({ message: 'Paper not found' })
+    }
+
+    const submission = submissionRows[0]
+
+    const [versionRows] = await connection.query(
+      `SELECT COALESCE(MAX(version_number), 0) AS latestVersion
+       FROM document_versions
+       WHERE submission_id = ?`,
+      [paperId]
+    )
+    const nextVersion = Number(versionRows[0].latestVersion) + 1
+
+    await connection.query(
+      `INSERT INTO document_versions
+        (submission_id, file_path, file_name, file_size, file_type, version_number, uploaded_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        paperId,
+        req.file.path,
+        req.file.originalname,
+        req.file.size || null,
+        req.file.mimetype || null,
+        nextVersion,
+        userId
+      ]
+    )
+
+    await connection.commit()
+
+    try {
+      if (req && req.audit && typeof req.audit.log === 'function') {
+        await req.audit.log({
+          action: 'UPLOAD_VERSION',
+          target_type: 'submission',
+          target_id: submission.submission_id,
+          changes: { version: nextVersion, file_name: req.file.originalname }
+        })
+      }
+    } catch (e) {
+      console.error('Audit logging failed', e)
+    }
+
+    res.status(201).json({
+      message: 'New version uploaded successfully',
+      version: nextVersion,
+      paperId: submission.submission_id
+    })
+  } catch (err) {
+    await connection.rollback()
+    console.error(err)
+    res.status(500).json({ message: 'Server error during version upload' })
+  } finally {
+    connection.release()
+  }
+}
+
+const getMyPapers = async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT
+          rg.group_id,
+          rg.group_name,
+          s.submission_id AS paper_id,
+          s.title,
+          s.authors,
+          s.program,
+          s.status,
+          s.created_at,
+          dv.file_path,
+          dv.version_number,
+          dv.uploaded_at
+       FROM (
+         SELECT DISTINCT gm.group_id
+         FROM group_members gm
+         WHERE gm.user_id = ?
+         UNION
+         SELECT rg.group_id
+         FROM research_groups rg
+         WHERE rg.created_by = ?
+       ) my_groups
+       JOIN research_groups rg ON rg.group_id = my_groups.group_id
+       LEFT JOIN submissions s ON s.submission_id = (
+         SELECT ss.submission_id
+         FROM submissions ss
+         WHERE ss.group_id = rg.group_id
+         ORDER BY ss.updated_at DESC, ss.submission_id DESC
+         LIMIT 1
+       )
+       LEFT JOIN document_versions dv ON dv.submission_id = s.submission_id
+         AND (
+           dv.version_number IS NULL OR
+           dv.version_number = (
+             SELECT MAX(version_number)
+             FROM document_versions
+             WHERE submission_id = s.submission_id
+           )
+         )
+       WHERE s.submission_id IS NOT NULL
+       ORDER BY rg.group_name ASC`,
+      [req.user.user_id, req.user.user_id]
+    )
+    res.json(rows)
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ message: 'Server error' })
+  }
+}
+
+const getPaperDetail = async (req, res) => {
+  const { paperId } = req.params
+  const userId = req.user.user_id
+
+  try {
+    const [submissionRows] = await pool.query(
+      `SELECT s.submission_id, s.group_id, rg.group_name, s.title, s.abstract, s.keywords, s.authors, 
+              s.program, s.school_year, s.status, s.created_at, s.updated_at
+       FROM submissions s
+       JOIN research_groups rg ON rg.group_id = s.group_id
+       WHERE s.submission_id = ?
+         AND (
+           EXISTS (
+             SELECT 1
+             FROM group_members gm
+             WHERE gm.group_id = rg.group_id
+               AND gm.user_id = ?
+           )
+           OR s.submitted_by = ?
+           OR rg.created_by = ?
+         )`,
+      [paperId, userId, userId, userId]
+    )
+
+    if (submissionRows.length === 0) {
+      return res.status(404).json({ message: 'Paper not found' })
+    }
+
+    const submission = submissionRows[0]
+
+    const [versions] = await pool.query(
+      `SELECT version_number, file_path, file_name, file_size, file_type, uploaded_at
+       FROM document_versions
+       WHERE submission_id = ?
+       ORDER BY version_number DESC`,
+      [paperId]
+    )
+    const [reviews] = await pool.query(
+      `SELECT r.review_id, r.reviewer_id, u.name AS reviewer_name, 
+              r.status_assigned, r.reviewed_at
+       FROM reviews r
+       JOIN users u ON u.user_id = r.reviewer_id
+       WHERE r.submission_id = ?
+       ORDER BY r.reviewed_at DESC`,
+      [paperId]
+    )
+
+    const reviewsWithComments = await Promise.all(
+      reviews.map(async (review) => {
+        const [comments] = await pool.query(
+          `SELECT comment_id, author_id, u.name AS author_name, comment_text, rc.created_at
+           FROM review_comments rc
+           JOIN users u ON u.user_id = rc.author_id
+           WHERE rc.submission_id = ? AND rc.author_id = ?
+           ORDER BY rc.created_at ASC`,
+          [paperId, review.reviewer_id]
+        )
+        return {
+          ...review,
+          comments
+        }
+      })
+    )
+
+    res.json({
+      submission_id: submission.submission_id,
+      group_id: submission.group_id,
+      group_name: submission.group_name,
+      submitted_by: submission.submitted_by,
+      title: submission.title,
+      abstract: submission.abstract,
+      keywords: submission.keywords,
+      authors: submission.authors,
+      program: submission.program,
+      school_year: submission.school_year,
+      status: submission.status,
+      created_at: submission.created_at,
+      updated_at: submission.updated_at,
+      versions,
+      reviews: reviewsWithComments
+    })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ message: 'Server error' })
+  }
+}
+
+module.exports = { getMyGroups, uploadPaper, uploadPaperVersion, getMyPapers, getPaperDetail }
