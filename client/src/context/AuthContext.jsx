@@ -2,6 +2,7 @@ import { createContext, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { login as loginService } from '../services/authService'
 
+
 // eslint-disable-next-line react-refresh/only-export-components
 export const AuthContext = createContext()
 
