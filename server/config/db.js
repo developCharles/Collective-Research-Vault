@@ -1,12 +1,30 @@
 const { Pool } = require('pg')
 const dotenv = require('dotenv')
+const path = require('path')
 
-dotenv.config()
+// Always load server/.env, regardless of the directory the process starts in.
+dotenv.config({ path: path.join(__dirname, '..', '.env'), quiet: true })
 
-const poolConfig = process.env.DATABASE_URL
+const connectionString = process.env.DATABASE_URL
+const isSupabase = /supabase\.(co|com)/i.test(connectionString || '')
+const rawSsl = String(process.env.DB_SSL || '').toLowerCase()
+const sslEnabled = rawSsl
+  ? ['true', '1', 'require'].includes(rawSsl)
+  : isSupabase
+
+const sslConfig = sslEnabled ? { rejectUnauthorized: false } : undefined
+
+const sharedConfig = {
+  ssl: sslConfig,
+  max: Number(process.env.DB_POOL_MAX || 10),
+  connectionTimeoutMillis: 10000,
+  idleTimeoutMillis: 30000,
+}
+
+const poolConfig = connectionString
   ? {
-      connectionString: process.env.DATABASE_URL,
-      ssl: process.env.DB_SSL === 'true' || process.env.DB_SSL === '1' ? { rejectUnauthorized: false } : undefined,
+      connectionString,
+      ...sharedConfig,
     }
   : {
       host: process.env.DB_HOST || 'localhost',
@@ -14,10 +32,14 @@ const poolConfig = process.env.DATABASE_URL
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
       port: process.env.DB_PORT ? Number(process.env.DB_PORT) : 5432,
-      max: 10,
+      ...sharedConfig,
     }
 
 const pool = new Pool(poolConfig)
+
+pool.on('error', (err) => {
+  console.error('Unexpected PostgreSQL pool error:', err.message)
+})
 
 const convertPlaceholders = (sql, params = []) => {
   if (!params || params.length === 0) return { sql, params }
@@ -62,8 +84,15 @@ const getConnection = async () => {
   return client
 }
 
+const testConnection = async () => {
+  const result = await pool.query('SELECT 1 AS ok')
+  return result.rows[0]?.ok === 1
+}
+
 module.exports = {
   query,
   getConnection,
+  testConnection,
+  pool,
   end: pool.end.bind(pool),
 }

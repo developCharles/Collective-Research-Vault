@@ -3,12 +3,27 @@ const cors = require('cors')
 const dotenv = require('dotenv')
 const path = require('path')
 
-dotenv.config()
+dotenv.config({ path: path.join(__dirname, '.env'), quiet: true })
+
+const { testConnection, end } = require('./config/db')
 
 const app = express()
 
+// CLIENT_URL accepts a comma-separated list, e.g.
+//   CLIENT_URL=https://core-v.netlify.app,http://localhost:5173
+const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173')
+  .split(',')
+  .map((origin) => origin.trim().replace(/\/+$/, ''))
+  .filter(Boolean)
+
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    // Requests without an Origin header (curl, health checks, same-origin) pass.
+    if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+      return callback(null, true)
+    }
+    return callback(null, false)
+  },
   credentials: true
 }))
 app.use(express.json())
@@ -33,7 +48,39 @@ app.get('/api', (req, res ) => {
     res.json({ message: 'CORE V API is running' })
 })
 
-const PORT = process.env.PORT || 5000
-app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`)
+app.get('/api/health', async (_req, res) => {
+  try {
+    await testConnection()
+    res.json({ status: 'ok', database: 'connected' })
+  } catch (err) {
+    console.error('Health check failed:', err.message)
+    res.status(503).json({ status: 'error', database: 'disconnected' })
+  }
 })
+
+const PORT = process.env.PORT || 5000
+
+const start = async () => {
+  try {
+    await testConnection()
+    console.log('Connected to PostgreSQL')
+  } catch (err) {
+    console.error('Database connection failed:', err.message)
+    console.error('Check DATABASE_URL in server/.env (see SUPABASE_SETUP.md)')
+    process.exit(1)
+  }
+
+  app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`)
+  })
+}
+
+const shutdown = async () => {
+  await end()
+  process.exit(0)
+}
+
+process.on('SIGINT', shutdown)
+process.on('SIGTERM', shutdown)
+
+start()

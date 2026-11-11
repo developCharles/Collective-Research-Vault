@@ -5,8 +5,10 @@
  * @returns {string} The base URL without trailing slash
  */
 export const getApiBaseUrl = () => {
-  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000'
-  return baseUrl.replace(/\/$/, '') // Remove trailing slash if present
+  const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/+$/, '')
+  // Accept both "https://host" and "https://host/api" so a missing /api
+  // in the environment variable cannot break every request.
+  return /\/api$/.test(baseUrl) ? baseUrl : `${baseUrl}/api`
 }
 
 /**
