@@ -1,34 +1,43 @@
-import { NavLink } from 'react-router-dom';
-import { ROUTES, glass } from './constants';
-import { HomeIcon, UsersIcon, BookIcon, ClockIcon } from './icons';
+import { NavLink } from 'react-router-dom'
+import { ROUTES, glass } from './constants'
+import { HomeIcon, UsersIcon, BookIcon, ClockIcon, PlusIcon } from './icons'
 
-// `disabled` items are in the design but have no page/route yet.
 export const NAV = [
   { label: 'Home', to: ROUTES.home, icon: HomeIcon, end: true },
   { label: 'My Group', to: ROUTES.group, icon: UsersIcon, disabled: true },
   { label: 'Research Archive', to: ROUTES.archive, icon: BookIcon, disabled: true },
+  { label: 'New Upload', to: ROUTES.upload, icon: PlusIcon },
   { label: 'History', to: ROUTES.history, icon: ClockIcon },
-];
+]
 
 const initials = (name = '') =>
-  name.split(' ').filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('') || '?';
+  name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0].toUpperCase())
+    .join('') || '?'
 
 const linkCls = ({ isActive }) =>
-  `relative flex items-center gap-3 rounded-xl px-4 py-3 text-sm border transition-colors ${
+  `relative flex items-center gap-3 rounded-xl border px-4 py-3 text-sm transition-colors ${
     isActive
-      ? 'bg-white/10 border-white/10 text-[#F5B829] after:absolute after:right-0 after:top-1.5 after:bottom-1.5 after:w-1 after:rounded-full after:bg-[#F5B829]'
+      ? 'border-white/10 bg-white/10 text-gold after:absolute after:inset-y-1.5 after:right-0 after:w-1 after:rounded-full after:bg-gold'
       : 'border-white/5 text-white/70 hover:bg-white/5 hover:text-white'
-  }`;
+  }`
 
 export default function Sidebar({ user, onLogout }) {
-  const name = user?.name ?? user?.full_name ?? 'Student';
+  const name = user?.name ?? user?.full_name ?? 'Student'
 
   return (
-    <aside className={`${glass} hidden lg:flex lg:flex-col w-[260px] shrink-0 p-5 sticky top-6 h-[calc(100vh-3rem)]`}>
-      <div className="flex items-center gap-3 px-2 pt-1 pb-8">
-        <div className="w-9 h-9 rounded-lg border-2 border-[#F5B829] grid place-items-center text-[#F5B829] font-bold">V</div>
-        <span className="text-xl font-bold tracking-wide">
-          CORE <span className="text-[#F5B829]">V</span>
+    <aside
+      className={`${glass} sticky top-6 hidden h-[calc(100dvh-3rem)] w-64 shrink-0 self-start flex-col overflow-y-auto p-5 lg:flex`}
+    >
+      <div className="flex items-center gap-3 px-2 pb-8 pt-1">
+        <div className="grid size-9 place-items-center rounded-lg border-2 border-gold font-bold text-gold">
+          V
+        </div>
+        <span className="font-display text-xl font-bold tracking-wide">
+          CORE <span className="text-gold">V</span>
         </span>
       </div>
 
@@ -39,29 +48,28 @@ export default function Sidebar({ user, onLogout }) {
               key={label}
               aria-disabled="true"
               title="Coming soon"
-              className="flex items-center gap-3 rounded-xl border border-white/5 px-4 py-3 text-sm text-white/35 cursor-not-allowed"
+              className="flex cursor-not-allowed items-center gap-3 rounded-xl border border-white/5 px-4 py-3 text-sm text-white/30"
             >
-              <Icon className="w-4 h-4" />
+              <Icon />
               {label}
-              <span className="ml-auto text-[10px] uppercase tracking-wider">Soon</span>
             </span>
           ) : (
             <NavLink key={to} to={to} end={end} className={linkCls}>
-              <Icon className="w-4 h-4" />
+              <Icon />
               {label}
             </NavLink>
           )
         )}
       </nav>
 
-      <div className="mt-auto">
+      <div className="mt-auto pt-6">
         <div className="flex items-center gap-3 px-1">
-          <div className="w-10 h-10 rounded-full bg-[#F5B829] text-[#1f2a5c] grid place-items-center text-sm font-bold">
+          <div className="grid size-10 shrink-0 place-items-center rounded-full bg-gold text-sm font-bold text-ink">
             {initials(name)}
           </div>
           <div className="min-w-0">
-            <p className="text-xs font-semibold truncate">{name}</p>
-            <p className="text-[11px] text-white/50">Student</p>
+            <p className="truncate text-sm font-semibold">{name}</p>
+            <p className="text-xs text-white/50">Student</p>
           </div>
         </div>
         <button
@@ -73,13 +81,12 @@ export default function Sidebar({ user, onLogout }) {
         </button>
       </div>
     </aside>
-  );
+  )
 }
 
-// Simple horizontal nav shown below the lg breakpoint (sidebar is hidden there).
 export function MobileNav() {
   return (
-    <nav className="flex gap-2 overflow-x-auto lg:hidden">
+    <nav className="flex gap-2 overflow-x-auto pb-1 lg:hidden">
       {NAV.filter((n) => !n.disabled).map(({ label, to, end }) => (
         <NavLink
           key={to}
@@ -87,7 +94,7 @@ export function MobileNav() {
           end={end}
           className={({ isActive }) =>
             `whitespace-nowrap rounded-full border px-4 py-2 text-xs font-semibold ${
-              isActive ? 'border-[#F5B829] text-[#F5B829]' : 'border-white/15 text-white/70'
+              isActive ? 'border-gold text-gold' : 'border-white/15 text-white/70'
             }`
           }
         >
@@ -95,5 +102,5 @@ export function MobileNav() {
         </NavLink>
       ))}
     </nav>
-  );
+  )
 }

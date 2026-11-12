@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import Login from './pages/Login'
+import ResearchGallery from './pages/ResearchGallery'
 
 // Student
 import StudentLayout from './pages/student/StudentLayout'
@@ -40,6 +41,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Navigate to="/login" />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/gallery" element={<ResearchGallery />} />
 
           <Route
             path="/student"
