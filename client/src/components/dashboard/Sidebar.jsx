@@ -1,11 +1,12 @@
 import { NavLink } from 'react-router-dom'
 import { ROUTES, glass } from './constants'
-import { HomeIcon, UsersIcon, BookIcon, ClockIcon } from './icons'
+import { HomeIcon, UsersIcon, BookIcon, ClockIcon, PlusIcon } from './icons'
 
 export const NAV = [
   { label: 'Home', to: ROUTES.home, icon: HomeIcon, end: true },
   { label: 'My Group', to: ROUTES.group, icon: UsersIcon, disabled: true },
   { label: 'Research Archive', to: ROUTES.archive, icon: BookIcon, disabled: true },
+  { label: 'New Upload', to: ROUTES.upload, icon: PlusIcon },
   { label: 'History', to: ROUTES.history, icon: ClockIcon },
 ]
 

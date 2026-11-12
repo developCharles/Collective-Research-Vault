@@ -1,5 +1,6 @@
-  import { useState } from 'react'
+import { useState } from 'react'
   import useAuth from '../context/useAuth'
+  import { Link } from 'react-router-dom'
 
   const Login = () => {
     const { login } = useAuth()
@@ -81,6 +82,10 @@
               </button>
             </div>
           </form>
+
+          <Link to="/gallery" style={styles.galleryLink}>
+            Browse the research gallery
+          </Link>
 
         </div>
       </div>
@@ -207,6 +212,15 @@ const styles = {
     border: 'none',
     borderRadius: '10px',
     cursor: 'pointer',
+  },
+
+  galleryLink: {
+    display: 'block',
+    marginTop: '1.25rem',
+    textAlign: 'center',
+    fontSize: '0.875rem',
+    color: 'rgba(255,255,255,0.85)',
+    textDecoration: 'underline',
   },
 }
 

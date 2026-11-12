@@ -88,3 +88,21 @@ export const AlertIcon = (p) => (
     <path d="M12 10v4M12 17.5v.01" />
   </Svg>
 )
+
+export const StarIcon = ({ className = 'size-3.5' }) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+    <path d="M12 2l3 6.9 7.5.7-5.7 5 1.7 7.4L12 18l-6.5 4 1.7-7.4-5.7-5L9 8.9z" />
+  </svg>
+)
+
+export const MenuIcon = (p) => (
+  <Svg {...p}>
+    <path d="M4 7h16M4 12h16M4 17h16" />
+  </Svg>
+)
+
+export const CloseIcon = (p) => (
+  <Svg {...p}>
+    <path d="M6 6l12 12M18 6L6 18" />
+  </Svg>
+)

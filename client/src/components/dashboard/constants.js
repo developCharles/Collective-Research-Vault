@@ -16,5 +16,6 @@ export const STATUS_STYLES = {
   submitted: { label: 'Ongoing', cls: 'bg-sky-500/20 text-sky-300 border-sky-400/30' },
   under_review: { label: 'Ongoing', cls: 'bg-sky-500/20 text-sky-300 border-sky-400/30' },
   needs_revision: { label: 'Needs Revision', cls: 'bg-amber-500/20 text-amber-300 border-amber-400/30' },
+  for_revision: { label: 'Needs Revision', cls: 'bg-amber-500/20 text-amber-300 border-amber-400/30' },
   rejected: { label: 'Rejected', cls: 'bg-rose-500/20 text-rose-300 border-rose-400/30' },
 }
