@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
+import useAuth from '../../context/useAuth'
+import { getRoleHome } from '../../utils/roleHome'
 import Logo from '../Logo'
 import { MenuIcon, CloseIcon } from '../dashboard/icons'
 
@@ -32,7 +34,31 @@ function NavItem({ label, to, disabled, onClick }) {
   )
 }
 
-function AuthActions({ onNavigate, className = '' }) {
+function AuthActions({ user, onLogout, onNavigate, className = '' }) {
+  if (user) {
+    return (
+      <div className={`items-center gap-3 ${className}`}>
+        <button
+          type="button"
+          onClick={() => {
+            onNavigate?.()
+            onLogout()
+          }}
+          className="rounded-lg border border-gold px-6 py-2 text-center text-base text-gold transition-colors hover:bg-gold/10"
+        >
+          Logout
+        </button>
+        <Link
+          to={getRoleHome(user.role)}
+          onClick={onNavigate}
+          className="rounded-lg bg-gold px-6 py-2 text-center text-base font-medium text-ink transition-colors hover:bg-gold-light"
+        >
+          Dashboard
+        </Link>
+      </div>
+    )
+  }
+
   return (
     <div className={`items-center gap-3 ${className}`}>
       <Link
@@ -53,6 +79,7 @@ function AuthActions({ onNavigate, className = '' }) {
 }
 
 export default function GalleryNavbar() {
+  const { user, logout } = useAuth()
   const [open, setOpen] = useState(false)
   const close = () => setOpen(false)
 
@@ -70,7 +97,7 @@ export default function GalleryNavbar() {
           </nav>
         </div>
 
-        <AuthActions className="hidden md:flex" />
+        <AuthActions user={user} onLogout={logout} className="hidden md:flex" />
 
         <button
           type="button"
@@ -90,7 +117,12 @@ export default function GalleryNavbar() {
               <NavItem key={l.label} {...l} onClick={close} />
             ))}
           </nav>
-          <AuthActions onNavigate={close} className="mt-4 grid grid-cols-2" />
+          <AuthActions
+            user={user}
+            onLogout={logout}
+            onNavigate={close}
+            className="mt-4 grid grid-cols-2"
+          />
         </div>
       )}
     </header>

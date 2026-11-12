@@ -39,7 +39,7 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          <Route path="/" element={<Navigate to="/login" />} />
+          <Route path="/" element={<Navigate to="/gallery" />} />
           <Route path="/login" element={<Login />} />
           <Route path="/gallery" element={<ResearchGallery />} />
 
