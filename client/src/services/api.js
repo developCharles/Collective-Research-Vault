@@ -1,8 +1,7 @@
 import axios from 'axios'
-import { getApiBaseUrl } from '../utils/helpers'
 
 const api = axios.create({
-    baseURL: getApiBaseUrl(),
+    baseURL: import.meta.env.VITE_API_URL || '/api',
 })
 
 // automatically attach JWT Token to every request
@@ -15,6 +14,20 @@ api.interceptors.request.use((config) => {
     }
     return config
 })
+
+api.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        const message = error.response?.data?.message || ''
+        const isLogin = error.config?.url?.includes('/auth/login')
+        if (!isLogin && /token/i.test(message)) {
+            localStorage.removeItem('token')
+            localStorage.removeItem('user')
+            window.location.assign('/login')
+        }
+        return Promise.reject(error)
+    }
+)
 
 export const getNotifications = ()    => api.get('/notifications')
 export const getUnreadCount   = ()    => api.get('/notifications/unread')

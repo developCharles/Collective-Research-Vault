@@ -1,20 +1,7 @@
-import { glass, STATUS_STYLES } from './constants'
+import { glass } from './constants'
 import { DotsIcon } from './icons'
+import StatusPill from './StatusPill'
 import { timeAgo, monthYear } from '../../utils/formatDate'
-
-function StatusPill({ status }) {
-  const s = STATUS_STYLES[status] ?? {
-    label: status,
-    cls: 'bg-white/10 text-white/70 border-white/20',
-  }
-  return (
-    <span
-      className={`shrink-0 rounded-full border px-3 py-1 text-[0.625rem] font-bold uppercase tracking-wider ${s.cls}`}
-    >
-      {s.label}
-    </span>
-  )
-}
 
 export default function PaperCard({ paper, onOpen, onMenu }) {
   const isDone = paper.status === 'approved' || paper.status === 'published'
@@ -32,7 +19,7 @@ export default function PaperCard({ paper, onOpen, onMenu }) {
         <span className="text-xs text-white/50">{meta}</span>
       </div>
 
-      <h3 className="mt-4 warp-break-word text-base font-semibold leading-snug sm:text-lg">
+      <h3 className="mt-4 wrap-break-word text-base font-semibold leading-snug sm:text-lg">
         {paper.title}
       </h3>
 
