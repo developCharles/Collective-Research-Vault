@@ -1,5 +1,6 @@
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import useAuth from '../../context/useAuth'
+import Logo from '../../components/Logo'
 
 const AdminLayout = () => {
   const { user, logout } = useAuth()
@@ -18,9 +19,7 @@ const AdminLayout = () => {
       <div style={styles.sidebar}>
         <div style={styles.logoRow}>
           <div style={styles.logoIcon}>
-            <svg width="18" height="18" fill="none" stroke="#FFBE4F" strokeWidth="2" viewBox="0 0 24 24">
-              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-            </svg>
+            <Logo className="size-5 text-gold" />
           </div>
           <span style={styles.logoText}>CORE <span style={{ color: '#FFBE4F' }}>V</span></span>
         </div>

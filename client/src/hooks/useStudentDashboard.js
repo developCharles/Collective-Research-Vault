@@ -15,7 +15,7 @@ export function useStudentDashboard() {
       const [p, n] = await Promise.allSettled([getMyPapers(), fetchNotifications()])
       if (cancelled) return
       if (p.status === 'fulfilled') setPapers(p.value)
-      else setError(p.reason?.response?.data?.message || 'Could not load your research.')
+      else setError(p.reason?.response?.data?.message || 'Could not load your research. Check that the API address is set.')
       if (n.status === 'fulfilled') setNotifications(n.value)
       setLoading(false)
     }

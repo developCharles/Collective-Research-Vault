@@ -106,3 +106,21 @@ export const CloseIcon = (p) => (
     <path d="M6 6l12 12M18 6L6 18" />
   </Svg>
 )
+
+export const ExternalLinkIcon = (p) => (
+  <Svg {...p}>
+    <path d="M10 6H6a2 2 0 00-2 2v9a2 2 0 002 2h9a2 2 0 002-2v-4M14 4h6v6M20 4l-9 9" />
+  </Svg>
+)
+
+export const HeartIcon = (p) => (
+  <Svg {...p}>
+    <path d="M12 20s-7-4.5-7-10a4 4 0 017-2.5A4 4 0 0119 10c0 5.5-7 10-7 10z" />
+  </Svg>
+)
+
+export const ChatIcon = (p) => (
+  <Svg {...p}>
+    <path d="M21 12a8 8 0 01-11.6 7.1L4 20l1-4.5A8 8 0 1121 12z" />
+  </Svg>
+)

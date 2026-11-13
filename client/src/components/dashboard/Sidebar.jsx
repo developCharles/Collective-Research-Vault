@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import { ROUTES, glass } from './constants'
+import Logo from '../Logo'
 import { HomeIcon, UsersIcon, BookIcon, ClockIcon, PlusIcon } from './icons'
 
 export const NAV = [
@@ -33,9 +34,7 @@ export default function Sidebar({ user, onLogout }) {
       className={`${glass} sticky top-6 hidden h-[calc(100dvh-3rem)] w-64 shrink-0 self-start flex-col overflow-y-auto p-5 lg:flex`}
     >
       <div className="flex items-center gap-3 px-2 pb-8 pt-1">
-        <div className="grid size-9 place-items-center rounded-lg border-2 border-gold font-bold text-gold">
-          V
-        </div>
+        <Logo className="size-9 text-gold" />
         <span className="font-display text-xl font-bold tracking-wide">
           CORE <span className="text-gold">V</span>
         </span>
