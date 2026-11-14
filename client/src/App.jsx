@@ -10,7 +10,7 @@ import StudentDashboard from './pages/student/StudentDashboard'
 import UploadForm from './pages/student/UploadForm'
 import PaperDetail from './pages/student/PaperDetail'
 import ActivityHistory from './pages/student/ActivityHistory'
-
+import Forum from './pages/student/Forum'
 
 // Faculty
 import FacultyLayout from './pages/faculty/FacultyLayout'
@@ -55,6 +55,7 @@ function App() {
             <Route path="upload" element={<UploadForm />} />
             <Route path="paper/:paperId" element={<PaperDetail />} />
             <Route path="history" element={<ActivityHistory />} />
+            <Route path="forum" element={<Forum />} />
           </Route>
 
           <Route

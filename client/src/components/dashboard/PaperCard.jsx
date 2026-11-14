@@ -12,7 +12,7 @@ export default function PaperCard({ paper, onOpen, onMenu }) {
   return (
     <article
       onClick={() => onOpen?.(paper)}
-      className={`${glass} cursor-pointer p-4 transition hover:-translate-y-0.5 hover:bg-white/10 sm:p-5`}
+      className={`${glass} cursor-pointer p-4 transition hover:-translate-y-0.5 hover:border-white/25 sm:p-5`}
     >
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
         <StatusPill status={paper.status} />

@@ -1,5 +1,6 @@
 export const ROUTES = {
   home: '/student',
+  forum: '/student/forum',
   group: '/student/group',
   archive: '/student/archive',
   upload: '/student/upload',
@@ -8,7 +9,7 @@ export const ROUTES = {
 }
 
 export const glass =
-  'bg-white/[0.07] border border-white/10 backdrop-blur-sm rounded-2xl shadow-lg shadow-black/20'
+  'bg-panel border border-white/10 backdrop-blur-sm rounded-2xl shadow-lg shadow-black/20'
 
 export const STATUS_STYLES = {
   approved: { label: 'Approved', cls: 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30' },
