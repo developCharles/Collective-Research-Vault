@@ -155,3 +155,16 @@ export const CommentPlusIcon = (p) => (
     <path d="M12 7.5v5M9.5 10h5" />
   </Svg>
 )
+
+export const UploadCloudIcon = (p) => (
+  <Svg {...p}>
+    <path d="M7 18a4.5 4.5 0 01-.6-8.96A6 6 0 0117.7 7.6 4.7 4.7 0 0117.5 18" />
+    <path d="M12 21v-8M8.8 15.8L12 12.6l3.2 3.2" />
+  </Svg>
+)
+
+export const ChevronDownIcon = (p) => (
+  <Svg {...p}>
+    <path d="M6 9l6 6 6-6" />
+  </Svg>
+)
