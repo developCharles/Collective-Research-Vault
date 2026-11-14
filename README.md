@@ -26,19 +26,40 @@ Collective-Research-Vault
 │  │  │  │  ├─ NotificationsPanel.jsx
 │  │  │  │  ├─ PaperCard.jsx
 │  │  │  │  ├─ Sidebar.jsx
-│  │  │  │  └─ StartDraftCard.jsx
+│  │  │  │  ├─ StartDraftCard.jsx
+│  │  │  │  └─ StatusPill.jsx
 │  │  │  ├─ gallery
 │  │  │  │  ├─ FilterPanel.jsx
 │  │  │  │  ├─ GalleryCard.jsx
 │  │  │  │  └─ GalleryNavbar.jsx
 │  │  │  ├─ Logo.jsx
 │  │  │  ├─ Navbar.jsx
+│  │  │  ├─ notifications
+│  │  │  │  ├─ NotificationIcon.jsx
+│  │  │  │  ├─ NotificationRow.jsx
+│  │  │  │  ├─ NotificationSection.jsx
+│  │  │  │  └─ RichMessage.jsx
+│  │  │  ├─ paper
+│  │  │  │  ├─ AddPostModal.jsx
+│  │  │  │  ├─ AttachField.jsx
+│  │  │  │  ├─ AuthorsCard.jsx
+│  │  │  │  ├─ Avatar.jsx
+│  │  │  │  ├─ FeedbackNotes.jsx
+│  │  │  │  ├─ ForumSection.jsx
+│  │  │  │  ├─ PaperSummaryCard.jsx
+│  │  │  │  ├─ SectionHeading.jsx
+│  │  │  │  └─ VersionHistory.jsx
 │  │  │  ├─ ProtectedRoute.jsx
 │  │  │  └─ StatusBadge.jsx
 │  │  ├─ context
 │  │  │  ├─ AuthContext.jsx
-│  │  │  └─ useAuth.js
+│  │  │  ├─ forumContext.js
+│  │  │  ├─ ForumProvider.jsx
+│  │  │  ├─ useAuth.js
+│  │  │  └─ useForum.js
 │  │  ├─ hooks
+│  │  │  ├─ useNotifications.js
+│  │  │  ├─ usePaperDetail.js
 │  │  │  ├─ useResearchGallery.js
 │  │  │  └─ useStudentDashboard.js
 │  │  ├─ index.css
@@ -62,10 +83,15 @@ Collective-Research-Vault
 │  │  │  │  ├─ FacultyDashboard.jsx
 │  │  │  │  ├─ FacultyLayout.jsx
 │  │  │  │  └─ SubmissionDetail.jsx
+│  │  │  ├─ forum
+│  │  │  │  ├─ ForumPostCard.jsx
+│  │  │  │  ├─ LinkifiedText.jsx
+│  │  │  │  └─ NotificationsPreview.jsx
 │  │  │  ├─ Login.jsx
 │  │  │  ├─ ResearchGallery.jsx
 │  │  │  └─ student
 │  │  │     ├─ ActivityHistory.jsx
+│  │  │     ├─ Forum.jsx
 │  │  │     ├─ PaperDetail.jsx
 │  │  │     ├─ StudentDashboard.jsx
 │  │  │     ├─ StudentDashboardOld.jsx
@@ -76,12 +102,15 @@ Collective-Research-Vault
 │  │  │  ├─ api.js
 │  │  │  ├─ authService.js
 │  │  │  ├─ dashboardMocks.js
+│  │  │  ├─ forumPlaceholder.js
 │  │  │  ├─ galleryData.js
 │  │  │  ├─ notificationService.js
 │  │  │  └─ paperService.js
 │  │  └─ utils
+│  │     ├─ avatarColors.js
 │  │     ├─ formatDate.js
-│  │     └─ helpers.js
+│  │     ├─ helpers.js
+│  │     └─ roleHome.js
 │  └─ vite.config.js
 ├─ database
 │  ├─ migrations
@@ -93,6 +122,7 @@ Collective-Research-Vault
 ├─ netlify.toml
 ├─ package-lock.json
 ├─ package.json
+├─ README.md
 ├─ server
 │  ├─ ca.pem
 │  ├─ config

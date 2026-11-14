@@ -1,4 +1,4 @@
-import { getNotifications } from './api'
+import { getNotifications, markOneRead, markAllRead } from './api'
 
 export function normalizeNotification(row) {
   return {
@@ -15,3 +15,7 @@ export async function fetchNotifications() {
   const rows = Array.isArray(res.data?.data) ? res.data.data : []
   return rows.map(normalizeNotification)
 }
+
+export const markNotificationRead = (id) => markOneRead(id)
+
+export const markAllNotificationsRead = () => markAllRead()
