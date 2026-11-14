@@ -1,5 +1,7 @@
 import { NavLink, useLocation } from 'react-router-dom'
 import useForum from '../../context/useForum'
+import useAuth from '../../context/useAuth'
+import ProfileTrigger from '../profile/ProfileTrigger'
 import { ROUTES } from './constants'
 import Logo from '../Logo'
 import { HomeIcon, UsersIcon, BookIcon, BellIcon, PlusIcon } from './icons'
@@ -57,7 +59,14 @@ export default function Sidebar({ user, onLogout }) {
               {label}
             </span>
           ) : (
-            <NavLink key={to} to={to} end={end} className={linkCls}>
+            <NavLink
+              key={to}
+              to={to}
+              end={end}
+              className={({ isActive }) =>
+                linkCls({ isActive: isActive || (to === ROUTES.home && pathname.startsWith(ROUTES.upload)) })
+              }
+            >
               <Icon className="size-5" />
               {label}
             </NavLink>
@@ -78,7 +87,7 @@ export default function Sidebar({ user, onLogout }) {
             Add New Post
           </button>
         )}
-        <div className="flex items-center gap-3 px-1">
+        <ProfileTrigger className="flex w-full items-center gap-3 rounded-2xl px-1 py-1 text-left transition hover:bg-white/5">
           <div className="grid size-10 shrink-0 place-items-center rounded-full bg-gold text-sm font-bold text-ink">
             {initials(name)}
           </div>
@@ -86,7 +95,7 @@ export default function Sidebar({ user, onLogout }) {
             <p className="truncate text-sm font-medium">{name}</p>
             <p className="text-xs text-white/50">Student</p>
           </div>
-        </div>
+        </ProfileTrigger>
         <button
           type="button"
           onClick={onLogout}
@@ -100,22 +109,30 @@ export default function Sidebar({ user, onLogout }) {
 }
 
 export function MobileNav() {
+  const { user } = useAuth()
+  const name = user?.name ?? user?.full_name ?? 'Student'
+
   return (
-    <nav className="flex gap-2 overflow-x-auto pb-1 font-display lg:hidden">
-      {NAV.filter((n) => !n.disabled).map(({ label, to, end }) => (
-        <NavLink
-          key={to}
-          to={to}
-          end={end}
-          className={({ isActive }) =>
-            `whitespace-nowrap rounded-full border px-4 py-2 text-xs font-semibold ${
-              isActive ? 'border-gold bg-gold/10 text-gold' : 'border-white/15 text-white/70'
-            }`
-          }
-        >
-          {label}
-        </NavLink>
-      ))}
-    </nav>
+    <div className="flex items-center gap-3 font-display lg:hidden">
+      <nav className="flex min-w-0 flex-1 gap-2 overflow-x-auto pb-1">
+        {NAV.filter((n) => !n.disabled).map(({ label, to, end }) => (
+          <NavLink
+            key={to}
+            to={to}
+            end={end}
+            className={({ isActive }) =>
+              `whitespace-nowrap rounded-full border px-4 py-2 text-xs font-semibold ${
+                isActive ? 'border-gold bg-gold/10 text-gold' : 'border-white/15 text-white/70'
+              }`
+            }
+          >
+            {label}
+          </NavLink>
+        ))}
+      </nav>
+      <ProfileTrigger className="grid size-10 shrink-0 place-items-center rounded-full bg-gold text-sm font-bold text-ink transition hover:brightness-105">
+        {initials(name)}
+      </ProfileTrigger>
+    </div>
   )
 }

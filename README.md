@@ -28,6 +28,10 @@ Collective-Research-Vault
 │  │  │  │  ├─ Sidebar.jsx
 │  │  │  │  ├─ StartDraftCard.jsx
 │  │  │  │  └─ StatusPill.jsx
+│  │  │  ├─ forum
+│  │  │  │  ├─ ForumPostCard.jsx
+│  │  │  │  ├─ LinkifiedText.jsx
+│  │  │  │  └─ NotificationsPreview.jsx
 │  │  │  ├─ gallery
 │  │  │  │  ├─ FilterPanel.jsx
 │  │  │  │  ├─ GalleryCard.jsx
@@ -49,8 +53,13 @@ Collective-Research-Vault
 │  │  │  │  ├─ PaperSummaryCard.jsx
 │  │  │  │  ├─ SectionHeading.jsx
 │  │  │  │  └─ VersionHistory.jsx
+│  │  │  ├─ profile
+│  │  │  │  ├─ ProfileModal.jsx
+│  │  │  │  └─ ProfileTrigger.jsx
 │  │  │  ├─ ProtectedRoute.jsx
-│  │  │  └─ StatusBadge.jsx
+│  │  │  ├─ StatusBadge.jsx
+│  │  │  └─ ui
+│  │  │     └─ ModalShell.jsx
 │  │  ├─ context
 │  │  │  ├─ AuthContext.jsx
 │  │  │  ├─ forumContext.js
@@ -83,10 +92,6 @@ Collective-Research-Vault
 │  │  │  │  ├─ FacultyDashboard.jsx
 │  │  │  │  ├─ FacultyLayout.jsx
 │  │  │  │  └─ SubmissionDetail.jsx
-│  │  │  ├─ forum
-│  │  │  │  ├─ ForumPostCard.jsx
-│  │  │  │  ├─ LinkifiedText.jsx
-│  │  │  │  └─ NotificationsPreview.jsx
 │  │  │  ├─ Login.jsx
 │  │  │  ├─ ResearchGallery.jsx
 │  │  │  └─ student

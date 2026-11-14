@@ -1,441 +1,206 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import api from "../../services/api";
+import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { glass, ROUTES } from '../../components/dashboard/constants'
+import { ChevronDownIcon } from '../../components/dashboard/icons'
+import Field, { inputCls } from '../../components/upload/Field'
+import FileDropzone, { validateFile } from '../../components/upload/FileDropzone'
+import { PROGRAMS } from '../../components/upload/programs'
+import { getMyGroups, uploadPaper } from '../../services/uploadService'
 
-const PROGRAMS = ["BSIT", "BSEMC", "BSCS"];
-
-const ALLOWED_TYPES = [
-  "application/pdf",
-  "application/msword",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-];
-
-function generateSchoolYears(count = 5) {
-  const current = new Date().getFullYear();
-  return Array.from({ length: count }, (_, i) => {
-    const start = current - 2 + i;
-    return `${start}-${start + 1}`;
-  });
-}
-
-function FieldLabel({ children }) {
-  return <label style={styles.label}>{children}</label>;
-}
-
-function TextInput({ name, placeholder, value, onChange, required = true, type = "text" }) {
-  return (
-    <input
-      type={type}
-      name={name}
-      placeholder={placeholder}
-      value={value}
-      onChange={onChange}
-      required={required}
-      style={styles.input}
-      onFocus={e => Object.assign(e.target.style, styles.inputFocus)}
-      onBlur={e => Object.assign(e.target.style, styles.inputBlur)}
-    />
-  );
-}
-
-function SelectField({ name, value, onChange, required = true, disabled = false, children }) {
-  return (
-    <select
-      name={name}
-      value={value}
-      onChange={onChange}
-      required={required}
-      disabled={disabled}
-      style={{ ...styles.select, opacity: disabled ? 0.5 : 1 }}
-    >
-      {children}
-    </select>
-  );
-}
+const YEAR_PATTERN = /^\d{4}$/
 
 export default function UploadForm() {
-  const navigate = useNavigate();
-
-  const [form, setForm] = useState({
-    group_id: "",
-    title: "",
-    abstract: "",
-    keywords: "",
-    authors: "",
-    program: "",
-    school_year: "",
-  });
-
-  const [groups, setGroups] = useState([]);
-  const [groupsLoading, setGroupsLoading] = useState(false);
-  const [file, setFile] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [dragOver, setDragOver] = useState(false);
-  const [charCounts, setCharCounts] = useState({ abstract: 0, keywords: 0 });
-
-  const schoolYears = generateSchoolYears();
+  const navigate = useNavigate()
+  const [groups, setGroups] = useState([])
+  const [groupsState, setGroupsState] = useState('loading')
+  const [groupId, setGroupId] = useState('')
+  const [title, setTitle] = useState('')
+  const [authors, setAuthors] = useState('')
+  const [program, setProgram] = useState('')
+  const [year, setYear] = useState('')
+  const [file, setFile] = useState(null)
+  const [showErrors, setShowErrors] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState('')
 
   useEffect(() => {
-    const fetchGroups = async () => {
-      try {
-        setGroupsLoading(true);
-        const res = await api.get("/papers/my-groups");
-        const myGroups = res.data.data || [];
-        setGroups(myGroups);
-        setForm(prev => ({
-          ...prev,
-          group_id: prev.group_id || (myGroups[0]?.group_id ? String(myGroups[0].group_id) : ""),
-        }));
-      } catch (err) {
-        console.error(err);
-        alert(err.response?.data?.message || "Failed to load your groups.");
-      } finally {
-        setGroupsLoading(false);
-      }
-    };
-
-    fetchGroups();
-  }, []);
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: value }));
-
-    if (name === "abstract" || name === "keywords") {
-      setCharCounts(prev => ({ ...prev, [name]: value.length }));
+    let cancelled = false
+    getMyGroups()
+      .then((rows) => {
+        if (cancelled) return
+        setGroups(rows)
+        setGroupId(rows.length === 1 ? String(rows[0].group_id) : '')
+        setGroupsState('ready')
+      })
+      .catch(() => {
+        if (!cancelled) setGroupsState('error')
+      })
+    return () => {
+      cancelled = true
     }
-  };
+  }, [])
 
-  const validateAndSetFile = (selected) => {
-    if (!selected) return;
-    if (!ALLOWED_TYPES.includes(selected.type)) {
-      alert("Only PDF, DOC, or DOCX files are allowed.");
-      return;
-    }
-    if (selected.size > 50 * 1024 * 1024) {
-      alert("File exceeds the 50 MB limit.");
-      return;
-    }
-    setFile(selected);
-  };
+  const programOptions = useMemo(() => {
+    const extra = groups.map((g) => g.program).filter((p) => p && !PROGRAMS.includes(p))
+    return [...PROGRAMS, ...new Set(extra)]
+  }, [groups])
 
-  const handleFileChange = (e) => validateAndSetFile(e.target.files[0]);
-
-  const handleDrop = (e) => {
-    e.preventDefault();
-    setDragOver(false);
-    validateAndSetFile(e.dataTransfer.files[0]);
-  };
+  const yearNumber = Number(year)
+  const errors = {
+    title: title.trim() ? '' : 'Research title is required.',
+    authors: authors.trim() ? '' : 'List at least one author.',
+    program: program ? '' : 'Select an academic program.',
+    year: YEAR_PATTERN.test(year) && yearNumber >= 2000 && yearNumber <= 2100 ? '' : 'Enter a valid year, e.g. 2024.',
+    group: groupId ? '' : 'Select your research group.',
+    file: validateFile(file),
+  }
+  const hasErrors = Object.values(errors).some(Boolean)
+  const show = (key) => (showErrors ? errors[key] : '')
+  const blocked = groupsState !== 'ready' || groups.length === 0
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!file) { alert("Please attach a research file before submitting."); return; }
-    if (!form.group_id) { alert("Please select your group before submitting."); return; }
-
-    try {
-      setLoading(true);
-
-      const formData = new FormData();
-      formData.append("group_id", form.group_id);
-      formData.append("title",       form.title);
-      formData.append("abstract",    form.abstract);
-      formData.append("keywords",    form.keywords);
-      formData.append("authors",     form.authors);
-      formData.append("program",     form.program);
-      formData.append("school_year", form.school_year);
-      formData.append("file",        file);
-
-      const res = await api.post("/papers/upload", formData);
-
-      alert(`Submitted successfully! Paper ID: ${res.data.paperId} · Version: ${res.data.version}`);
-
-      setForm({
-        group_id: groups[0]?.group_id ? String(groups[0].group_id) : "",
-        title: "",
-        abstract: "",
-        keywords: "",
-        authors: "",
-        program: "",
-        school_year: "",
-      });
-      setFile(null);
-      setCharCounts({ abstract: 0, keywords: 0 });
-    } catch (err) {
-      console.error(err);
-      const msg = err.response?.data?.message || "Upload failed. Please try again.";
-      alert(msg);
-    } finally {
-      setLoading(false);
+    e.preventDefault()
+    setSubmitError('')
+    if (hasErrors) {
+      setShowErrors(true)
+      return
     }
-  };
+    setSubmitting(true)
+    try {
+      await uploadPaper({
+        title: title.trim(),
+        authors: authors.trim(),
+        program,
+        year,
+        groupId,
+        file,
+      })
+      navigate(ROUTES.home)
+    } catch (err) {
+      setSubmitError(err.response?.data?.message || 'Could not submit your draft. Please try again.')
+      setSubmitting(false)
+    }
+  }
 
   return (
-    <>
-      <div style={styles.topBar}>
-        <button style={styles.backBtn} onClick={() => navigate(-1)}>← Back</button>
-      </div>
+    <div className="font-display">
+      <h1 className="text-3xl font-bold">Start New Draft</h1>
 
-      {/* Card */}
-      <div style={styles.card}>
-        <h2 style={styles.cardTitle}>Upload Research</h2>
-        <p style={styles.cardSubtitle}>
-          Submit your thesis, capstone, or proposal to the CORE-V vault.
-          Ensure all details are accurate before submitting.
-        </p>
+      <form
+        onSubmit={handleSubmit}
+        noValidate
+        className={`${glass} mt-6 p-5 sm:p-8 lg:p-12`}
+      >
+        {groupsState === 'error' && (
+          <p role="alert" className="mb-6 rounded-xl border border-danger/40 bg-danger/10 p-4 text-sm text-danger-ink">
+            Could not load your research groups. Refresh the page to try again.
+          </p>
+        )}
+        {groupsState === 'ready' && groups.length === 0 && (
+          <p className="mb-6 rounded-xl border border-warn/40 bg-warn/10 p-4 text-sm text-warn-ink">
+            You are not part of a research group yet. Ask your coordinator to add you before submitting a draft.
+          </p>
+        )}
 
-        <form onSubmit={handleSubmit}>
+        <div className="grid gap-x-6 gap-y-6 sm:grid-cols-2">
+          <Field label="Research Title" error={show('title')}>
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              maxLength={300}
+              placeholder="e.g. Impact of AI on Education"
+              className={`${inputCls} ${show('title') ? 'border-danger' : 'border-white/15'}`}
+            />
+          </Field>
 
-          <div style={styles.formGrid}>
-            <div style={styles.fieldGroup}>
-              <FieldLabel>YOUR GROUP</FieldLabel>
-              <SelectField
-                name="group_id"
-                value={form.group_id}
-                onChange={handleChange}
-                disabled={groupsLoading || groups.length === 0}
+          <Field label="Author(s)" error={show('authors')}>
+            <input
+              value={authors}
+              onChange={(e) => setAuthors(e.target.value)}
+              maxLength={300}
+              placeholder="John Doe, Tim Allen, Juan Cruz"
+              className={`${inputCls} ${show('authors') ? 'border-danger' : 'border-white/15'}`}
+            />
+          </Field>
+
+          <Field label="Academic Program" error={show('program')}>
+            <span className="relative block">
+              <select
+                value={program}
+                onChange={(e) => setProgram(e.target.value)}
+                className={`${inputCls} appearance-none bg-navy-900/60 pr-11 ${program ? 'text-white' : 'text-white/90'} ${show('program') ? 'border-danger' : 'border-white/15'}`}
               >
-                <option value="" disabled>
-                  {groupsLoading ? "Loading groups..." : "Select your group"}
+                <option value="" className="bg-navy-900">
+                  Select Program
                 </option>
-                {groups.map(group => (
-                  <option key={group.group_id} value={group.group_id}>
-                    {group.group_name}
+                {programOptions.map((p) => (
+                  <option key={p} value={p} className="bg-navy-900">
+                    {p}
                   </option>
                 ))}
-              </SelectField>
-              <p style={styles.hint}>
-                {groups.length > 0
-                  ? "Choose the research group this upload belongs to."
-                  : "You are not currently assigned to a group."}
-              </p>
+              </select>
+              <ChevronDownIcon className="pointer-events-none absolute right-4 top-1/2 size-4 -translate-y-1/2 text-white/70" />
+            </span>
+          </Field>
+
+          <Field label="Year" error={show('year')}>
+            <input
+              value={year}
+              onChange={(e) => setYear(e.target.value.replace(/\D/g, '').slice(0, 4))}
+              inputMode="numeric"
+              placeholder={String(new Date().getFullYear())}
+              className={`${inputCls} ${show('year') ? 'border-danger' : 'border-white/15'}`}
+            />
+          </Field>
+
+          {groups.length > 1 && (
+            <div className="sm:col-span-2">
+              <Field label="Research Group" error={show('group')}>
+                <span className="relative block">
+                  <select
+                    value={groupId}
+                    onChange={(e) => setGroupId(e.target.value)}
+                    className={`${inputCls} appearance-none bg-navy-900/60 pr-11 ${show('group') ? 'border-danger' : 'border-white/15'}`}
+                  >
+                    <option value="" className="bg-navy-900">
+                      Select Group
+                    </option>
+                    {groups.map((g) => (
+                      <option key={g.group_id} value={g.group_id} className="bg-navy-900">
+                        {g.group_name}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDownIcon className="pointer-events-none absolute right-4 top-1/2 size-4 -translate-y-1/2 text-white/70" />
+                </span>
+              </Field>
             </div>
-            <div style={styles.fieldGroup}>
-              <FieldLabel>RESEARCH TITLE</FieldLabel>
-              <TextInput name="title" placeholder="e.g., Impact of AI on Modern Education"
-                value={form.title} onChange={handleChange} />
-            </div>
-            <div style={styles.fieldGroup}>
-              <FieldLabel>AUTHOR(S)</FieldLabel>
-              <TextInput name="authors" placeholder="Separate names with commas"
-                value={form.authors} onChange={handleChange} />
-            </div>
+          )}
+        </div>
+
+        <div className="mt-8">
+          <p className="text-sm font-bold uppercase tracking-wide text-gold">
+            Research File (PDF Preferred)
+          </p>
+          <div className="mt-4">
+            <FileDropzone file={file} error={show('file')} onChange={setFile} />
           </div>
+        </div>
 
-          <div style={styles.formGrid}>
-            <div style={styles.fieldGroup}>
-              <FieldLabel>ACADEMIC PROGRAM</FieldLabel>
-              <SelectField name="program" value={form.program} onChange={handleChange}>
-                <option value="" disabled>Select Program</option>
-                {PROGRAMS.map(p => <option key={p} value={p}>{p}</option>)}
-              </SelectField>
-            </div>
-            <div style={styles.fieldGroup}>
-              <FieldLabel>SCHOOL YEAR</FieldLabel>
-              <SelectField name="school_year" value={form.school_year} onChange={handleChange}>
-                <option value="" disabled>Select School Year</option>
-                {schoolYears.map(y => <option key={y} value={y}>{y}</option>)}
-              </SelectField>
-            </div>
-          </div>
+        {submitError && (
+          <p role="alert" className="mt-6 text-sm text-danger-ink">
+            {submitError}
+          </p>
+        )}
 
-          <div style={styles.fieldGroupFull}>
-            <FieldLabel>ABSTRACT</FieldLabel>
-            <div style={{ position: "relative" }}>
-              <textarea
-                name="abstract"
-                placeholder="Provide a brief summary of your research..."
-                value={form.abstract}
-                onChange={handleChange}
-                maxLength={2000}
-                style={styles.textarea}
-                onFocus={e => Object.assign(e.target.style, styles.inputFocus)}
-                onBlur={e => Object.assign(e.target.style, styles.inputBlur)}
-              />
-              <span style={styles.charCount}>{charCounts.abstract}/2000</span>
-            </div>
-          </div>
-
-          <div style={styles.fieldGroupFull}>
-            {/* submissions.keywords — comma-separated, new field */}
-            <FieldLabel>KEYWORDS</FieldLabel>
-            <div style={{ position: "relative" }}>
-              <TextInput
-                name="keywords"
-                placeholder="e.g., machine learning, education, AI"
-                value={form.keywords}
-                onChange={handleChange}
-                required={false}
-              />
-              <span style={{ ...styles.charCount, top: "50%", transform: "translateY(-50%)" }}>
-                {charCounts.keywords}/300
-              </span>
-            </div>
-            <p style={styles.hint}>Separate keywords with commas. Used for vault search.</p>
-          </div>
-
-          <div style={styles.fieldGroupFull}>
-            <FieldLabel>RESEARCH FILE (PDF PREFERRED)</FieldLabel>
-            <div
-              style={{
-                ...styles.dropZone,
-                ...(dragOver ? styles.dropZoneActive : {}),
-                ...(file ? styles.dropZoneFilled : {}),
-              }}
-              onClick={() => document.getElementById("fileInput").click()}
-              onDragOver={e => { e.preventDefault(); setDragOver(true); }}
-              onDragLeave={() => setDragOver(false)}
-              onDrop={handleDrop}
-            >
-              <input
-                id="fileInput"
-                type="file"
-                accept=".pdf,.doc,.docx"
-                onChange={handleFileChange}
-                style={{ display: "none" }}
-              />
-              {file ? (
-                <>
-                  <span style={styles.fileIcon}>📄</span>
-                  <p style={styles.fileName}>{file.name}</p>
-                  <p style={styles.fileSize}>{(file.size / 1024 / 1024).toFixed(2)} MB</p>
-                  <p style={styles.fileHint}>Click to replace file</p>
-                </>
-              ) : (
-                <>
-                  <span style={styles.uploadIcon}>↑</span>
-                  <p style={styles.dropText}>Click to browse or drag and drop</p>
-                  <p style={styles.dropHint}>PDF, DOC, DOCX · Max 50 MB</p>
-                </>
-              )}
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading || groupsLoading || groups.length === 0}
-            style={{ ...styles.submitBtn, ...(loading ? styles.submitBtnDisabled : {}) }}
-          >
-            {loading ? "Uploading..." : "Submit Research"}
-          </button>
-
-        </form>
-      </div>
-    </>
-  );
+        <button
+          type="submit"
+          disabled={submitting || blocked}
+          className="mt-10 h-12 w-full rounded-xl bg-linear-to-br/srgb from-gold to-gold-soft text-base font-medium text-ink transition enabled:hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {submitting ? 'Submitting…' : 'Submit Draft'}
+        </button>
+      </form>
+    </div>
+  )
 }
-
-const styles = {
-  topBar: { marginBottom: "1.5rem" },
-  backBtn: {
-    background: "transparent", border: "none",
-    color: "rgba(255,255,255,0.7)", fontSize: "14px",
-    cursor: "pointer", padding: "0",
-    display: "flex", alignItems: "center", gap: "6px",
-  },
-  card: {
-    background: "#ffffff0f",
-    border: "1px solid rgba(255,255,255,0.1)",
-    borderRadius: "18px",
-    padding: "2rem 2.25rem",
-  },
-  cardTitle: {
-    fontSize: "clamp(1.4rem, 3vw, 2rem)",
-    fontWeight: "700", margin: "0 0 0.5rem 0", color: "#fff",
-  },
-  cardSubtitle: {
-    fontSize: "13px", color: "rgba(255,255,255,0.5)",
-    marginBottom: "2rem", lineHeight: 1.5,
-  },
-  formGrid: {
-    display: "grid", gridTemplateColumns: "1fr 1fr",
-    gap: "1.25rem", marginBottom: "1.25rem",
-  },
-  fieldGroup: { display: "flex", flexDirection: "column", gap: "8px" },
-  fieldGroupFull: {
-    display: "flex", flexDirection: "column",
-    gap: "8px", marginBottom: "1.25rem",
-  },
-  label: {
-    fontSize: "11px", fontWeight: "700",
-    color: "#FFBE4F", letterSpacing: "0.08em",
-  },
-  input: {
-    background: "#ffffff0d",
-    border: "1px solid rgba(255,255,255,0.15)",
-    borderRadius: "10px", padding: "12px 14px",
-    color: "#fff", fontSize: "14px", outline: "none",
-    width: "100%", boxSizing: "border-box",
-    transition: "border-color 0.2s",
-  },
-  inputFocus: { borderColor: "#FFBE4F" },
-  inputBlur: { borderColor: "rgba(255,255,255,0.15)" },
-  textarea: {
-    background: "#ffffff0d",
-    border: "1px solid rgba(255,255,255,0.15)",
-    borderRadius: "10px", padding: "12px 14px",
-    color: "#fff", fontSize: "14px", outline: "none",
-    width: "100%", boxSizing: "border-box",
-    transition: "border-color 0.2s",
-    resize: "vertical", minHeight: "100px",
-    fontFamily: "inherit",
-  },
-  charCount: {
-    position: "absolute", bottom: "10px", right: "12px",
-    fontSize: "11px", color: "rgba(255,255,255,0.3)",
-  },
-  hint: {
-    fontSize: "11px", color: "rgba(255,255,255,0.3)",
-    margin: "2px 0 0 2px",
-  },
-  select: {
-    background: "#1e2a6e",
-    border: "1px solid rgba(255,255,255,0.15)",
-    borderRadius: "10px", padding: "12px 14px",
-    color: "#fff", fontSize: "14px", outline: "none",
-    width: "100%", boxSizing: "border-box",
-    cursor: "pointer", appearance: "none",
-    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23FFBE4F' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`,
-    backgroundRepeat: "no-repeat", backgroundPosition: "right 14px center",
-  },
-  stageGroup: { display: "flex", gap: "10px", flexWrap: "wrap" },
-  stageOption: {
-    padding: "9px 20px",
-    borderRadius: "999px",
-    border: "1px solid rgba(255,255,255,0.2)",
-    color: "rgba(255,255,255,0.6)",
-    fontSize: "13px", fontWeight: "600",
-    cursor: "pointer",
-    transition: "all 0.2s",
-    userSelect: "none",
-  },
-  stageOptionActive: {
-    background: "#FFBE4F",
-    border: "1px solid #FFBE4F",
-    color: "#1e2a6e",
-  },
-  dropZone: {
-    border: "2px dashed rgba(255,255,255,0.2)",
-    borderRadius: "14px", padding: "2.5rem 1rem",
-    display: "flex", flexDirection: "column",
-    alignItems: "center", justifyContent: "center",
-    cursor: "pointer",
-    transition: "border-color 0.2s, background 0.2s",
-    textAlign: "center", gap: "8px",
-  },
-  dropZoneActive: { borderColor: "#FFBE4F", background: "rgba(255,190,79,0.05)" },
-  dropZoneFilled: { borderColor: "#22c55e", background: "rgba(34,197,94,0.05)" },
-  uploadIcon: { fontSize: "28px", color: "rgba(255,255,255,0.4)", fontWeight: "300", lineHeight: 1 },
-  fileIcon: { fontSize: "28px", lineHeight: 1 },
-  dropText: { fontSize: "14px", color: "rgba(255,255,255,0.6)", margin: 0 },
-  dropHint: { fontSize: "12px", color: "rgba(255,255,255,0.3)", margin: 0 },
-  fileName: { fontSize: "14px", color: "#22c55e", fontWeight: "600", margin: 0 },
-  fileSize: { fontSize: "12px", color: "rgba(34,197,94,0.7)", margin: 0 },
-  fileHint: { fontSize: "12px", color: "rgba(255,255,255,0.3)", margin: 0 },
-  submitBtn: {
-    marginTop: "0.75rem", padding: "13px 32px",
-    background: "#FFBE4F", color: "#1e2a6e",
-    border: "none", borderRadius: "10px",
-    fontSize: "14px", fontWeight: "700", cursor: "pointer",
-  },
-  submitBtnDisabled: { opacity: 0.6, cursor: "not-allowed" },
-};
