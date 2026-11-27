@@ -53,9 +53,23 @@ export default function Landing() {
           </form>
           <Link
             to="/gallery"
-            className="mt-5 inline-flex min-h-12 items-center rounded-xl bg-linear-to-br from-gold to-gold-soft px-7 text-base font-semibold text-ink"
+            className="belt-pulse group mt-5 inline-flex items-center gap-4 rounded-xl bg-linear-to-br/srgb from-gold to-gold-soft py-2 pl-6 pr-2 font-semibold text-ink shadow-lg shadow-amber-500/30 transition hover:-translate-y-0.5 hover:brightness-105 focus:outline-none focus:ring-4 focus:ring-gold/40"
           >
             Browse the gallery
+            <span className="flex size-10 items-center justify-center rounded-full bg-navy-900 text-gold">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="size-5 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                aria-hidden="true"
+              >
+                <path d="M7 17 17 7M8 7h9v9" />
+              </svg>
+            </span>
           </Link>
         </section>
 
